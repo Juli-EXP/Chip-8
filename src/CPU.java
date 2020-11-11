@@ -525,10 +525,11 @@ public class CPU {
     }
 
     private void waitForKey() {
-        for (int i = 0; i < 0xF; ++i) {
+        for (int i = 0; i <= 0xF; ++i) {
             if (keyboard.isPressed(i)) {
                 System.out.println("Key: " + i);
                 vReg[x] = i;
+                keyboard.setKey(i, false);
                 return;
             }
         }

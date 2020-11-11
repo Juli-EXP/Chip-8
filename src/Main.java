@@ -1,17 +1,19 @@
-import javafx.animation.KeyFrame;
-import javafx.animation.Timeline;
 import javafx.application.Application;
+import javafx.application.Platform;
 import javafx.scene.Scene;
 import javafx.scene.control.Menu;
 import javafx.scene.control.MenuBar;
 import javafx.scene.control.MenuItem;
-import javafx.scene.control.Slider;
 import javafx.scene.layout.BorderPane;
 import javafx.stage.FileChooser;
 import javafx.stage.Stage;
-import javafx.util.Duration;
+
 
 import java.io.File;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.TimeUnit;
 
 
 public class Main extends Application {
@@ -21,8 +23,9 @@ public class Main extends Application {
     private Display display;
     private Keyboard keyboard;
 
-    private double cpuSpeed = 500;
-    private Timeline gameLoop;
+    private final ScheduledExecutorService threadPool = Executors.newScheduledThreadPool(2);
+    private ScheduledFuture<?> cpuThread;
+    private ScheduledFuture<?> displayThread;
 
     private boolean debug = false;
 
@@ -32,10 +35,8 @@ public class Main extends Application {
     }
 
     @Override
-    public void start(Stage primaryStage) throws Exception {
+    public void start(Stage primaryStage) {
         stage = primaryStage;
-
-        initEmulator();
 
         BorderPane root = new BorderPane();
         Scene scene = new Scene(root, 800, 450);
@@ -53,17 +54,13 @@ public class Main extends Application {
 
         MenuBar menuBar = new MenuBar(fileMenu, optionMenu);
 
-
         //Emulator
         display = new Display(800, 400);
         keyboard = new Keyboard();
         cpu = new CPU(display, keyboard);
 
         //Keyboard handler
-        scene.setOnKeyPressed(event -> {
-            System.out.println("Pressed: " + event.getText());
-            keyboard.pressKey(event.getCode());
-        });
+        scene.setOnKeyPressed(event -> keyboard.pressKey(event.getCode()));
         scene.setOnKeyReleased(event -> keyboard.releaseKey(event.getCode()));
 
         //View
@@ -80,34 +77,6 @@ public class Main extends Application {
         stopItem.setOnAction(event -> stopEmulation());
         cpuSpeedItem.setOnAction(event -> changeCpuSpeed());
     }
-    //TODO relpace with threads
-    private void initEmulator() {
-        gameLoop = new Timeline();
-        KeyFrame cpuKeyFrame = new KeyFrame(Duration.seconds(1 / cpuSpeed), event -> {
-            try {
-                cpu.cycle();
-
-                if (debug) {
-                    cpu.debug();
-                }
-
-                if (cpu.isDrawFlag()) {
-                    display.render();
-                    cpu.setDrawFlag(false);
-                }
-
-            } catch (RuntimeException e) {
-                gameLoop.stop();
-            }
-        });
-
-        KeyFrame timerKeyFrame = new KeyFrame(Duration.millis(16), event -> cpu.updateTimers());
-
-
-        gameLoop.setCycleCount(Timeline.INDEFINITE);
-        gameLoop.getKeyFrames().addAll(cpuKeyFrame, timerKeyFrame);
-    }
-
 
     private void loadRom() {
         FileChooser fileChooser = new FileChooser();
@@ -120,32 +89,68 @@ public class Main extends Application {
 
         stopEmulation();
 
-        initEmulator();
-
         cpu.loadRom(rom.getPath());
 
-        gameLoop.play();
+        startEmulation();
+    }
+
+    private void startEmulation() {
+        cpuThread = threadPool.scheduleWithFixedDelay(() -> {
+            cpu.cycle();
+
+            if (debug) {
+                cpu.debug();
+            }
+        }, 2, 2, TimeUnit.MILLISECONDS);
+
+        displayThread = threadPool.scheduleWithFixedDelay(() -> {
+            cpu.updateTimers();
+            if (cpu.isDrawFlag()) {
+                Platform.runLater(() -> {
+                    display.render();
+                    cpu.setDrawFlag(false);
+                });
+            }
+        }, 17, 17, TimeUnit.MILLISECONDS);
     }
 
     private void reset() {
         if (!cpu.isRunning())
             return;
 
-        initEmulator();
+        if (cpuThread != null) {
+            cpuThread.cancel(true);
+            displayThread.cancel(true);
+        }
 
-        gameLoop.stop();
         cpu.softReset();
-        gameLoop.play();
+        startEmulation();
     }
 
     private void stopEmulation() {
-        gameLoop.stop();
+        if (!cpu.isRunning())
+            return;
+
+        if (cpuThread != null) {
+            cpuThread.cancel(true);
+            displayThread.cancel(true);
+        }
+
         cpu.hardReset();
         display.render();
     }
 
+    public void stopPool() {
+        threadPool.shutdownNow();
+    }
+
     private void changeCpuSpeed() {
 
+    }
+
+    public void stop() {
+        stopEmulation();
+        stopPool();
     }
 
 }

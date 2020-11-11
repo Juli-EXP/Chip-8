@@ -23,7 +23,7 @@ public class Keyboard {
         keyMap.put("s", 8);
         keyMap.put("d", 9);
         keyMap.put("f", 14);
-        keyMap.put("z", 10);
+        keyMap.put("y", 10);    //y for qwertz
         keyMap.put("x", 0);
         keyMap.put("c", 11);
         keyMap.put("v", 15);
@@ -39,6 +39,10 @@ public class Keyboard {
         if(keyMap.containsKey(k.getName().toLowerCase())){
             keys[keyMap.get(k.getName().toLowerCase())] = false;
         }
+    }
+
+    public void setKey(int index, boolean value){
+        keys[index] = value;
     }
 
     public boolean isPressed(int i) {
