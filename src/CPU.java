@@ -493,6 +493,10 @@ public class CPU {
             for (int xLine = 0; xLine < 8; ++xLine) {
                 //a pixel gets drawn, if a bit is 1
                 if ((pixel & (0x80 >> xLine)) != 0) {
+
+                    //if the coordinate is greater than the screen
+                    //int xCoord = vReg[x] + xLine % 64;
+                    //int yCoord = vReg[y] + yLine % 32;
                     int xCoord = vReg[x] + xLine;
                     int yCoord = vReg[y] + yLine;
 

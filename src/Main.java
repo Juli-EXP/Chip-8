@@ -50,7 +50,9 @@ public class Main extends Application {
 
         Menu optionMenu = new Menu("Options");
         MenuItem cpuSpeedItem = new MenuItem("Change CPU speed");
-        optionMenu.getItems().addAll(cpuSpeedItem);
+        MenuItem debugTrueItem = new MenuItem("Enable debug");
+        MenuItem debugFalseItem = new MenuItem("Disable debug");
+        optionMenu.getItems().addAll(cpuSpeedItem, debugTrueItem, debugFalseItem);
 
         MenuBar menuBar = new MenuBar(fileMenu, optionMenu);
 
@@ -76,6 +78,8 @@ public class Main extends Application {
         resetItem.setOnAction(event -> reset());
         stopItem.setOnAction(event -> stopEmulation());
         cpuSpeedItem.setOnAction(event -> changeCpuSpeed());
+        debugTrueItem.setOnAction(event -> debug = true);
+        debugFalseItem.setOnAction(event -> debug = false);
     }
 
     private void loadRom() {

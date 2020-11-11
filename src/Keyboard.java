@@ -5,8 +5,8 @@ import java.util.HashMap;
 import java.util.Map;
 
 public class Keyboard {
-    private boolean[] keys;
-    private Map<String, Integer> keyMap = new HashMap<>();
+    private final boolean[] keys;
+    private final Map<String, Integer> keyMap = new HashMap<>();
 
     public Keyboard() {
         keys = new boolean[16];
